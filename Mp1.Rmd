@@ -1,0 +1,78 @@
+---
+title: "MP1"
+author: "Dhwajesh Bhandari"
+output: html_document
+date: "2024-10-19"
+---
+
+```{r}
+library(readr)
+library(fpp2)
+library(ggplot2)
+flightVolume <- read.csv("~/Downloads/flightVolume.csv")
+vl<-flightVolume
+vl_ts<-ts(flightVolume$vislong, start =c(1976,1),frequency = 12)
+plot(vl_ts)
+summary(vl_ts)
+decomposed<-decompose(vl_ts)
+plot(decomposed)
+summary(vl_ts)
+Trend <- decomposed$trend
+Seasonal <- decomposed$seasonal
+Random <- decomposed$random
+plot(Trend)
+plot(Seasonal)
+plot(Random)
+
+library(forecast)
+vl_naive <- naive(vl_ts, h=12)
+plot(vl_naive,main= "naive model")
+residuals_naive <- residuals(vl_naive)
+plot(residuals_naive)
+
+maf<-meanf(vl_ts,12)
+plot(maf)
+residuals_maf<-residuals(maf)
+plot(residuals_maf)
+
+vl_ses <- ses(vl_ts, h = 12)
+plot(vl_ses)
+ses_residue <- residuals(vl_ses, main = " Residual of Simple Smoothing")
+plot(ses_residue)
+
+hw_model<-HoltWinters(vl_ts)
+HW_forecast<-forecast(hw_model,h=12)
+plot(hw_model)
+
+stl_decomp <- stl(vl_ts, s.window = "periodic")
+plot(stl_decomp)
+
+#Given the seasonal pattern of the data,i pick the MAPE as the accuracy measure for this time series as the MAPE is based on percentage, not absolute values.
+mape_naive <- accuracy(vl_naive)[,"MAPE"]
+mape_maf <- accuracy(maf)[,"MAPE"]
+mape_ses <- accuracy(vl_ses)[,"MAPE"]
+mape_hw <- accuracy(HW_forecast)[,"MAPE"]
+cat("MAPE for Naive forecast:", mape_naive, "\n")
+cat("MAPE for Mean forecast:", mape_maf, "\n")
+cat("MAPE for Simple Exponential Smoothing:", mape_ses, "\n")
+cat("MAPE for Holt-Winters:", mape_hw, "\n")
+mape_naive <- accuracy(vl_naive)[,"MAPE"]
+mape_maf <- accuracy(maf)[,"MAPE"]
+mape_ses <- accuracy(vl_ses)[,"MAPE"]
+mape_hw <- accuracy(HW_forecast)[,"MAPE"]
+mape_df <- data.frame(
+  Model = c("Naive", "Mean Forecast", "Simple Exp. Smoothing", "Holt-Winters"),
+  MAPE = c(mape_naive, mape_maf, mape_ses, mape_hw)
+)
+
+ggplot(mape_df, aes(x = Model, y = MAPE, fill = Model)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = sprintf("%.2f", MAPE)), vjust = -0.5) +
+  labs(title = "MAPE Comparison for Different Forecasting Models",
+       y = "Mean Absolute Percentage Error (MAPE)",
+       x = "") 
+# The comparison of MAPE values shows that HoltWinters perform better than the other models
+final_forecast <- forecast(hw_model, h=12)
+plot(final_forecast, main="12-Month Forecast")
+
+```
